@@ -255,3 +255,36 @@ class HomePage extends StatelessWidget {
     );
   }
 }
+
+
+void ambilData() async {
+    var url = 'https://pemrograman-pinnie.000webhostapp.com/user_list.php';
+    var uri = Uri.parse(url);
+    var response = await http.get(uri);
+    var body = response.body;
+    var json = jsonDecode(body);
+    setState(() {
+      users = json['data']['users'];
+    });
+  }
+
+   void insertData() async {
+    var name = txtName.text;
+    var email = txtEmail.text;
+    var requestBody = {
+      'name' : name,
+      'email' : email
+    };
+
+
+    var url = 'https://pemrograman-pinnie.000webhostapp.com/user_add.php';
+    var uri = Uri.parse(url);
+    var response = await http.post(uri, body: requestBody);
+    var body = response.body;
+    var json = jsonDecode(body);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(json['message'])));
+    if(json['success'] == 1){
+      ambilData();
+    }
+
+   }
