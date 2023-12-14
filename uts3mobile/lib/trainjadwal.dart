@@ -1,7 +1,8 @@
-import 'package:flutter/foundation.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:uts3mobile/traintiket.dart';
 import 'db_manager.dart';
+import 'package:http/http.dart' as http;
 
 class TrainJadwal extends StatefulWidget {
   const TrainJadwal({Key? key}) : super(key: key);
@@ -12,11 +13,11 @@ class TrainJadwal extends StatefulWidget {
 
 class _PesanTiket extends State<TrainJadwal> {
   final dbHelper = DatabaseHelper.instance;
-  List<Map<String, dynamic>> allCategoryData = [];
   final TextEditingController stasiunAwalController = TextEditingController();
   final TextEditingController stasiunAkhirController = TextEditingController();
   final TextEditingController jamKeberangkatanController =
       TextEditingController();
+  final TextEditingController namaController = TextEditingController();
 
   final formGlobalKey = GlobalKey<FormState>();
 
@@ -32,117 +33,141 @@ class _PesanTiket extends State<TrainJadwal> {
       ),
       body: Padding(
         padding: EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              'Stasiun Awal',
-              style: TextStyle(fontSize: 18.0),
-            ),
-            TextFormField(
-              controller: stasiunAwalController,
-              decoration: InputDecoration(
-                hintText: 'Masukkan Stasiun Awal',
+        child: Form(
+          key: formGlobalKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                'Nama',
+                style: TextStyle(fontSize: 18.0),
               ),
-            ),
-            SizedBox(height: 16.0),
-            Text(
-              'Stasiun Akhir',
-              style: TextStyle(fontSize: 18.0),
-            ),
-            TextFormField(
-              controller: stasiunAkhirController,
-              decoration: InputDecoration(
-                hintText: 'Masukkan Stasiun Akhir',
-              ),
-            ),
-            SizedBox(height: 16.0),
-            Text(
-              'Jam Keberangkatan',
-              style: TextStyle(fontSize: 18.0),
-            ),
-            TextFormField(
-              controller: jamKeberangkatanController,
-              decoration: InputDecoration(
-                hintText: 'Masukkan Jam keberangkatan',
-              ),
-            ),
-            SizedBox(height: 16.0),
-            ElevatedButton(
-              onPressed: () {
-                {
-                  if (stasiunAwalController.text.isEmpty ||
-                      stasiunAkhirController.text.isEmpty ||
-                      jamKeberangkatanController.text.isEmpty) {
-                    // Menampilkan dialog error jika ada input yang kosong.
-                    showDialog(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return AlertDialog(
-                          title: Text('Error'),
-                          content: Text('Harap Diisi Terlebih Dahulu'),
-                          actions: [
-                            TextButton(
-                              child: Text('Tutup'),
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                              },
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  } else {
-                    _insert();
-                    // Menampilkan Snackbar.
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Tiket berhasil dipesan!'),
-                      ),
-                    );
-
-                    // Berpindah ke halaman TicketPage setelah menunggu sebentar.
-                    Future.delayed(const Duration(seconds: 2), () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (context) => TicketPage()),
-                      );
-                    });
+              TextFormField(
+                controller: namaController,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Nama tidak boleh kosong';
                   }
-                }
-              },
-              child: Text('Pesan Tiket'),
-            ),
-          ],
+                  return null;
+                },
+                decoration: InputDecoration(
+                  hintText: 'Nama',
+                  border: OutlineInputBorder(),
+                  contentPadding:
+                      EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+                ),
+              ),
+              SizedBox(height: 16.0),
+              Text(
+                'Stasiun Awal',
+                style: TextStyle(fontSize: 18.0),
+              ),
+              TextFormField(
+                controller: stasiunAwalController,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Masukkan Stasiun Awal tidak boleh kosong';
+                  }
+                  return null;
+                },
+                decoration: InputDecoration(
+                  hintText: 'Masukkan Stasiun Awal',
+                  border: OutlineInputBorder(),
+                  contentPadding:
+                      EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+                ),
+              ),
+              SizedBox(height: 16.0),
+              Text(
+                'Stasiun Akhir',
+                style: TextStyle(fontSize: 18.0),
+              ),
+              TextFormField(
+                controller: stasiunAkhirController,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Masukkan Stasiun Akhir tidak boleh kosong';
+                  }
+                  return null;
+                },
+                decoration: InputDecoration(
+                  hintText: 'Masukkan Stasiun Akhir',
+                  border: OutlineInputBorder(),
+                  contentPadding:
+                      EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+                ),
+              ),
+              SizedBox(height: 16.0),
+              Text(
+                'Jam Keberangkatan',
+                style: TextStyle(fontSize: 18.0),
+              ),
+              TextFormField(
+                controller: jamKeberangkatanController,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Masukkan Jam keberangkatan tidak boleh kosong';
+                  }
+                  return null;
+                },
+                decoration: InputDecoration(
+                  hintText: 'Masukkan Jam keberangkatan',
+                  border: OutlineInputBorder(),
+                  contentPadding:
+                      EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+                ),
+              ),
+              SizedBox(height: 16.0),
+              ElevatedButton(
+                onPressed: () {
+                  if (formGlobalKey.currentState!.validate()) {
+                    _insert();
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  primary: Colors.blue,
+                  textStyle: TextStyle(fontSize: 18.0),
+                  padding:
+                      EdgeInsets.symmetric(vertical: 16.0, horizontal: 32.0),
+                ),
+                child: Text('Pesan Tiket'),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
   void _insert() async {
-    // row to insert
-    Map<String, dynamic> row = {
-      DatabaseHelper.columnStart: stasiunAwalController.text,
-      DatabaseHelper.columnEnd: stasiunAkhirController.text,
-      DatabaseHelper.columnDate: jamKeberangkatanController.text,
+    var requestBody = {
+      'nama': namaController.text,
+      'stasiunAwal': stasiunAwalController.text,
+      'stasiunAkhir': stasiunAkhirController.text,
+      'jamKeberangkatan': jamKeberangkatanController.text,
     };
-    print('insert stRT');
 
-    final id = await dbHelper.insert(row);
-    if (kDebugMode) {
-      print('inserted row id: $id');
-    }
-    _query();
-    Navigator.push(context, MaterialPageRoute(builder: (_) => TicketPage()));
-  }
+    print(requestBody);
+    var url = 'https://pemrograman-pinnie.000webhostapp.com//kereta_add.php';
+    var uri = Uri.parse(url);
+    var response = await http.post(uri, body: requestBody);
+    var body = response.body;
+    var json = jsonDecode(body);
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(json['message'])));
+    if (json['success'] == 1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Tiket berhasil dipesan!'),
+        ),
+      );
 
-  void _query() async {
-    final allRows = await dbHelper.queryAllRows();
-    if (kDebugMode) {
-      print('query all rows:');
+      // Berpindah ke halaman TicketPage setelah menunggu sebentar.
+      Future.delayed(const Duration(seconds: 2), () {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => TicketPage()),
+        );
+      });
     }
-    for (var element in allRows) {
-      allCategoryData.add(element["name"]);
-    }
-    setState(() {});
   }
 }

@@ -4,7 +4,7 @@ import 'package:uts3mobile/trainjadwal.dart';
 import 'package:uts3mobile/trainpost.dart';
 import 'package:uts3mobile/traintarif.dart';
 import 'package:uts3mobile/traintiket.dart';
-
+import 'package:http/http.dart' as http;
 void main() {
   runApp(MyApp());
 }

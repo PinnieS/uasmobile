@@ -10,7 +10,7 @@ class TicketPage extends StatefulWidget {
 
 class _TicketPageState extends State<TicketPage> {
   final dbHelper = DatabaseHelper.instance;
-  List<Map<String, dynamic>> allTicketData = [];
+  List<dynamic> allTicketData = [];
 
   final formGlobalKey = GlobalKey<FormState>();
 
@@ -28,8 +28,7 @@ class _TicketPageState extends State<TicketPage> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: ListView(
           children: <Widget>[
             for (var item in allTicketData)
               Card(
@@ -40,26 +39,42 @@ class _TicketPageState extends State<TicketPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
-                        'Name: Pengguna ${item['name']}',
+                        'Name: Pengguna ${item['nama_penumpang']}',
                         style: TextStyle(fontSize: 16),
                       ),
                       Text(
-                        'Stasiun Awal: ${item['stasiunawal']}',
+                        'Stasiun Awal: ${item['stasiun_asal']}',
                         style: TextStyle(fontSize: 16),
                       ),
                       Text(
-                        'Stasiun Akhir: ${item['stasiunakhir']}',
+                        'Stasiun Akhir: ${item['stasiun_tujuan']}',
                         style: TextStyle(fontSize: 16),
                       ),
                       Text(
-                        'Jam Keberangkatan: ${item['jamkeberangkatan']}',
+                        'Jam Keberangkatan: ${item['waktu_berangkat']}',
                         style: TextStyle(fontSize: 16),
                       ),
-                      IconButton(
-                          onPressed: () {
-                            _delete(item['_id']);
-                          },
-                          icon: Icon(Icons.delete_outline))
+                      Text(
+                        'Harga: ${item['total_pembayaran']}',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          IconButton(
+                            onPressed: () {
+                              _update(item);
+                            },
+                            icon: Icon(Icons.edit),
+                          ),
+                          IconButton(
+                            onPressed: () {
+                              _delete(item);
+                            },
+                            icon: Icon(Icons.delete_outline),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -71,96 +86,131 @@ class _TicketPageState extends State<TicketPage> {
   }
 
   void _query() async {
-    final allRows = await dbHelper.queryAllRows();
-    print('query all rows:');
-    allRows.forEach(print);
+    await dbHelper.ambilData();
     setState(() {
-      allTicketData = allRows;
+      allTicketData = dbHelper.getPesanan();
     });
+    print(allTicketData);
   }
 
-  void _delete(int id) async {
-    // Assuming that the number of rows is the id for the last row.
-    final rowsDeleted = await dbHelper.delete(id);
-    print('deleted $rowsDeleted row(s): row $id');
-    _query();
+  void _update(item) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Update Ticket'),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formGlobalKey,
+              child: Column(
+                children: <Widget>[
+                  TextFormField(
+                    initialValue: item['nama_penumpang'],
+                    decoration: InputDecoration(labelText: 'Nama'),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Nama tidak boleh kosong';
+                      }
+                      return null;
+                    },
+                  ),
+                  TextFormField(
+                    initialValue: item['stasiun_asal'],
+                    decoration: InputDecoration(labelText: 'Stasiun Awal'),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Stasiun Awal tidak boleh kosong';
+                      }
+                      return null;
+                    },
+                  ),
+                  TextFormField(
+                    initialValue: item['stasiun_tujuan'],
+                    decoration: InputDecoration(labelText: 'Stasiun Akhir'),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Stasiun Akhir tidak boleh kosong';
+                      }
+                      return null;
+                    },
+                  ),
+                  TextFormField(
+                    initialValue: item['waktu_berangkat'],
+                    decoration: InputDecoration(labelText: 'Jam Keberangkatan'),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Jam Keberangkatan tidak boleh kosong';
+                      }
+                      return null;
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Batal'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Simpan'),
+              onPressed: () {
+                if (formGlobalKey.currentState?.validate() ?? false) {
+                  _updateTicket(item);
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _updateTicket(item) async {
+    var updatedData = {
+      'nama_penumpang': 'Updated Name', // Gantilah ini dengan nilai yang benar
+      'stasiun_asal': 'Updated Start Station',
+      'stasiun_tujuan': 'Updated End Station',
+      'waktu_berangkat': 'Updated Departure Time',
+    };
+
+    await dbHelper.updateTicket(item['id'], updatedData);
+    _query(); // Perbarui daftar tiket setelah pembaruan berhasil
+  }
+
+  void _delete(item) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Hapus Ticket'),
+          content: Text('Apakah Anda yakin ingin menghapus tiket ini?'),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Batal'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Hapus'),
+              onPressed: () {
+                _performTicketDelete(item);
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _performTicketDelete(item) async {
+    await dbHelper.deleteTicket(item['id']);
+    _query(); // Perbarui daftar tiket setelah penghapusan berhasil
   }
 }
-
-
-// class MyApp extends StatelessWidget {
-  
-//   @override
-//   Widget build(BuildContext context) {
-//     return MaterialApp(
-//       home: TicketPage(),
-//     );
-//   }
-// }
-
-// class TicketPage extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: Text('Ticket Page'),
-//       ),
-      // body: Center(
-      //   child: Column(
-      //     mainAxisAlignment: MainAxisAlignment.center,
-      //     children: <Widget>[
-      //       Text(
-      //         'Your Ticket Details',
-      //         style: TextStyle(
-      //           fontSize: 24,
-      //           fontWeight: FontWeight.bold,
-      //         ),
-      //       ),
-      //       SizedBox(height: 20),
-      //       TicketInfoCard(),
-      //     ],
-      //   ),
-      // ),
-//     );
-//   }
-// }
-
-// class TicketInfoCard extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-  //   return Card(
-  //     margin: EdgeInsets.all(20),
-  //     child: Padding(
-  //       padding: EdgeInsets.all(20),
-  //       child: Column(
-  //         crossAxisAlignment: CrossAxisAlignment.start,
-  //         children: <Widget>[
-  //           Text(
-  //             'Name : ',
-  //             style: TextStyle(fontSize: 16),
-  //           ),
-  //           Text(
-  //             'Stasiun Awal : ',
-  //             style: TextStyle(fontSize: 16),
-  //           ),
-  //           Text(
-  //             'Stasiun Akhir : ',
-  //             style: TextStyle(fontSize: 16),
-  //           ),
-  //           Text(
-  //             'Jam Keberangkatan :',
-  //             style: TextStyle(fontSize: 16),
-  //           ),
-  //         ],
-  //       ),
-  //     ),
-  //   );
-  // }
-//   void _query() async {
-//     final allRows = await dbHelper.queryAllRowsTicket();
-//     print('query all rows:');
-//     allRows.forEach(print);
-//     allTicketData = allRows;
-//     setState(() {});
-//   }
-// }
